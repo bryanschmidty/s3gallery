@@ -48,6 +48,14 @@
       <h3>Options</h3>
       <form id="settings-form">
         <div class="form-group">
+          <label for="existing-buckets">Existing Buckets:</label>
+          <select id="existing-buckets" class="form-control"></select>
+        </div>
+        <div class="form-group">
+          <label for="bucket-alias">Bucket Alias:</label>
+          <input type="text" id="bucket-alias" class="form-control" />
+        </div>
+        <div class="form-group">
           <label for="bucket-name">Bucket Name:</label>
           <input type="text" id="bucket-name" class="form-control" />
         </div>
@@ -65,8 +73,8 @@
         </div>
 
         <div class="form-actions">
-          <button id="save-settings" class="form-action-btn">Save Settings</button>
           <button id="close-settings" class="form-action-btn close-modal close-settings">Cancel</button>
+          <button id="save-settings" class="form-action-btn">Save Settings</button>
         </div>
       </form>
       <p>

@@ -1,7 +1,7 @@
 // Initialize AWS S3 client and set default bucketName
 let s3 = new AWS.S3();
-let bucketName = '';
 let versioningEnabled;
+let savedImageSize;
 
 const breadcrumbsEl = document.getElementById('breadcrumbs');
 const galleryEl = document.getElementById('gallery');
@@ -126,7 +126,7 @@ function renderBreadcrumbs(prefix, imageName = '') {
     }).join(' / ');
 
     const imageNameFragment = imageName ? ` / ${imageName}` : '';
-    breadcrumbsEl.innerHTML = `<a href="#" data-path="">${savedBucketName}</a> / ` + breadcrumbs + imageNameFragment;
+    breadcrumbsEl.innerHTML = `<a href="#" data-path="">${window.bucketName}</a> / ` + breadcrumbs + imageNameFragment;
     breadcrumbsEl.querySelectorAll('a').forEach(link => {
         link.addEventListener('click', (event) => {
             event.preventDefault();
@@ -329,13 +329,17 @@ async function renderImage(object) {
         versionCountText = `(${versionCount} rev)`;
     }
 
+    // Truncate the image name and add ellipses if it's too long
+    const maxLength = 20;
+    const truncatedImageName = imageName.length > maxLength ? imageName.substring(0, maxLength) + '...' : imageName;
+
     return `
     <div class="image">
       <div class="image-container">
         <img src="${imageUrl}" alt="${object.Key}" data-key="${object.Key}">
       </div>
       <div class="image-info">
-        <span class="image-name">${imageName}</span>
+        <span class="image-name" title="${imageName}">${truncatedImageName}</span>
         <span class="image-version-count">${versionCountText}</span>
       </div>
     </div>
@@ -355,7 +359,7 @@ function getLatestVersionId(object) {
     return null;
 }
 
-async function isVersioningEnabled() {
+function isVersioningEnabled() {
     if (versioningEnabled !== undefined) {
         return versioningEnabled;
     }
@@ -452,18 +456,19 @@ async function saveImageToIndexedDB(key, versionId, imageUrl, expiration = 24 * 
     const dataUrl = await blobToDataURL(blob);
     const dimensions = await getImageDimensions(imageUrl);
 
+    // const prefixedKey = `${window.bucketName}/${key}`;
     const now = new Date().getTime();
-    const keyData = {
-        key: key,
-        timestamp: now + expiration,
-    };
+    // const keyData = {
+    //     key: prefixedKey,
+    //     timestamp: now + expiration,
+    // };
 
     // Get existing data from IndexedDB
     let existingData = await getImageFromIndexedDB(key);
 
     if (!existingData) {
         existingData = {
-            key: key,
+            key: `${window.bucketName}/${key}`,
             timestamp: now + expiration,
             versions: versioningEnabled ? [] : null,
         };
@@ -503,15 +508,18 @@ async function saveImageToIndexedDB(key, versionId, imageUrl, expiration = 24 * 
                 existingData.versions.push({ versionId: currentVersionId });
             }
         }
-        existingData.timestamp = keyData.timestamp;
+        // existingData.timestamp = keyData.timestamp;
     } else {
         // Store the imageData object directly if versioning is not enabled
         imageData = {
             dataUrl: dataUrl,
             dimensions: dimensions
         };
-        existingData.timestamp = keyData.timestamp;
-        existingData.data = imageData;
+        // existingData.timestamp = keyData.timestamp;
+        existingData = {
+            ...imageData,
+            ...existingData
+        };
     }
 
     // Save the updated data to IndexedDB
@@ -528,7 +536,7 @@ async function getImageFromIndexedDB(key, revisionId = null) {
     return new Promise((resolve, reject) => {
         const transaction = db.transaction(["images"], "readonly");
         const objectStore = transaction.objectStore("images");
-        const request = objectStore.get(key);
+        const request = objectStore.get(`${window.bucketName}/${key}`);
 
         request.onerror = (event) => {
             console.error("Error retrieving image data from IndexedDB:", event);
@@ -552,7 +560,7 @@ async function getImageFromIndexedDB(key, revisionId = null) {
                     imageData = existingData.versions.find((v) => v.dataUrl); // Find the first version with dataUrl
                 }
             } else {
-                imageData = existingData.data;
+                imageData = existingData;
             }
 
             resolve({
@@ -573,7 +581,7 @@ function blobToDataURL(blob) {
 
 function openIndexedDB() {
     return new Promise((resolve, reject) => {
-        const request = indexedDB.open("S3Gallery", 1);
+        const request = indexedDB.open("S3Gallery", 2);
 
         request.onerror = (event) => {
             console.error("Error opening IndexedDB:", event);
@@ -586,12 +594,114 @@ function openIndexedDB() {
 
         request.onupgradeneeded = (event) => {
             const db = event.target.result;
-            db.createObjectStore("images", { keyPath: "key" });
+
+            // Create the images object store if it doesn't exist
+            if (!db.objectStoreNames.contains("images")) {
+                db.createObjectStore("images", { keyPath: "key" });
+            }
+
+            // Create the buckets object store if it doesn't exist
+            if (!db.objectStoreNames.contains("buckets")) {
+                db.createObjectStore("buckets", { keyPath: "alias" });
+            }
         };
     });
 }
 
+// Bucket saving functions
+async function saveBucketConfig(alias, bucketName, region, accessKeyId, secretAccessKey) {
+    const db = await openIndexedDB();
+    const transaction = db.transaction("buckets", "readwrite");
+    const objectStore = transaction.objectStore("buckets");
 
+    const bucketConfig = {
+        alias,
+        bucketName,
+        region,
+        accessKeyId,
+        secretAccessKey,
+    };
+
+    objectStore.put(bucketConfig);
+    await transaction.done;
+}
+
+async function loadBucketConfigs() {
+    const db = await openIndexedDB();
+    const tx = db.transaction("buckets", "readonly");
+    const store = tx.objectStore("buckets");
+    const cursorRequest = store.openCursor();
+    const bucketConfigs = [];
+
+    return new Promise((resolve, reject) => {
+        cursorRequest.onsuccess = (event) => {
+            const cursor = event.target.result;
+            if (cursor) {
+                bucketConfigs.push(cursor.value);
+                cursor.continue();
+            } else {
+                resolve(bucketConfigs);
+            }
+        };
+
+        cursorRequest.onerror = (event) => {
+            reject(event.target.error);
+        };
+    });
+}
+
+async function updateBucketDropdown() {
+    const bucketConfigs = await loadBucketConfigs();
+    const selectElement = document.getElementById("existing-buckets");
+
+    // Remove all existing options
+    selectElement.innerHTML = "";
+
+    // Add a default option
+    const defaultOption = document.createElement("option");
+    defaultOption.textContent = "Select a bucket";
+    defaultOption.disabled = true;
+    defaultOption.selected = true;
+    selectElement.appendChild(defaultOption);
+
+    // Add options for each bucket config
+    for (const config of bucketConfigs) {
+        const option = document.createElement("option");
+        option.textContent = config.alias;
+        option.value = JSON.stringify(config);
+        selectElement.appendChild(option);
+    }
+}
+
+async function loadLastUsedBucketConfig() {
+    const db = await openIndexedDB();
+    const tx = db.transaction("buckets", "readonly");
+    const store = tx.objectStore("buckets");
+    const cursor = await store.openCursor(null, "prev");
+
+    if (cursor) {
+        return cursor.value;
+    }
+
+    return null;
+}
+
+async function loadBucketConfigByAlias(alias) {
+    const db = await openIndexedDB();
+    const tx = db.transaction("buckets", "readonly");
+    const store = tx.objectStore("buckets");
+    const request = store.get(alias);
+
+    return new Promise((resolve, reject) => {
+        request.onsuccess = (event) => {
+            resolve(event.target.result);
+        };
+
+        request.onerror = (event) => {
+            reject(event.target.error);
+        };
+    });
+}
 
 // Cookie handling functions
 function setCookie(name, value, days) {
@@ -618,7 +728,7 @@ function getCookie(name) {
     return "";
 }
 
-async function updateConfig(bucketName, region, accessKeyId, secretAccessKey, imageSize) {
+async function updateConfig(alias, bucketName, region, accessKeyId, secretAccessKey, imageSize) {
     // Update the global bucketName variable
     window.bucketName = bucketName;
 
@@ -631,17 +741,37 @@ async function updateConfig(bucketName, region, accessKeyId, secretAccessKey, im
 
     // Recreate the S3 client with the new configuration
     s3 = new AWS.S3({apiVersion: '2006-03-01'});
-    document.getElementById('bucket-name').value = savedBucketName;
-    document.getElementById('region').value = savedRegion;
-    document.getElementById('access-key-id').value = savedAccessKeyId;
-    document.getElementById('secret-access-key').value = savedSecretAccessKey;
+    document.getElementById('bucket-alias').value = alias;
+    document.getElementById('bucket-name').value = bucketName;
+    document.getElementById('region').value = region;
+    document.getElementById('access-key-id').value = accessKeyId;
+    document.getElementById('secret-access-key').value = secretAccessKey;
     document.getElementById('gallery-image-size').value = imageSize;
 
-    versioningEnabled = await isVersioningEnabled();
+    return new Promise(async (resolve) => {
+        versioningEnabled = undefined;
+        versioningEnabled = await isVersioningEnabled();
+
+        const prefix = new URLSearchParams(window.location.search).get("prefix") || "";
+        renderBreadcrumbs(prefix);
+        await listObjects(prefix);
+
+        // Load settings from cookies
+        const savedImageSize = getCookie("imageSize");
+        if (savedImageSize) {
+            document.getElementById("gallery-image-size").value = savedImageSize;
+            updateImageSize(savedImageSize);
+        }
+
+        // Update the bucket drop-down
+        await updateBucketDropdown();
+
+        resolve();
+    });
 }
 
 function updateImageSize(imageSize) {
-    const image = document.querySelectorAll('.image');
+    const image = document.querySelectorAll('.image,.folder');
     image.forEach((container) => {
         container.style.maxWidth = `${imageSize}px`;
     })
@@ -664,32 +794,11 @@ function showLoadingScreen() {
     return loadingScreen;
 }
 
-// Load settings from cookies
-const savedBucketName = getCookie('bucketName');
-const savedRegion = getCookie('region');
-const savedAccessKeyId = getCookie('accessKeyId');
-const savedSecretAccessKey = getCookie('secretAccessKey');
-const savedImageSize = getCookie('imageSize');
-
-if (savedBucketName && savedRegion && savedAccessKeyId && savedSecretAccessKey) {
-    updateConfig(savedBucketName, savedRegion, savedAccessKeyId, savedSecretAccessKey);
-}
-if (savedImageSize) {
-    document.getElementById('gallery-image-size').value = savedImageSize;
-}
-
 document.getElementById('gallery-image-size').addEventListener('input', (event) => {
     const imageSize = event.target.value;
     setCookie('imageSize', imageSize, 30);
+    console.log(imageSize);
     updateImageSize(imageSize);
-});
-
-document.addEventListener("DOMContentLoaded", function () {
-    const urlParams = new URLSearchParams(window.location.search);
-    const prefix = urlParams.get("prefix") || ""; // Default to an empty string if the "prefix" parameter is not present
-
-    renderBreadcrumbs(prefix);
-    listObjects(prefix);
 });
 
 document.getElementById('close-modal').addEventListener('click', closeImageModal);
@@ -723,23 +832,34 @@ document.getElementById("options-link").addEventListener("click", (event) => {
     document.addEventListener("keydown", escapeModal);
 });
 
-document.getElementById("save-settings").addEventListener("click", (event) => {
+document.getElementById("save-settings").addEventListener("click", async (event) => {
     event.preventDefault();
-    const newBucketName = document.getElementById('bucket-name').value;
-    const newRegion = document.getElementById('region').value;
-    const newAccessKeyId = document.getElementById('access-key-id').value;
-    const newSecretAccessKey = document.getElementById('secret-access-key').value;
-    const imageSize = document.getElementById('gallery-image-size').value;
+    const alias = document.getElementById("bucket-alias").value;
+    const bucketName = document.getElementById("bucket-name").value;
+    const region = document.getElementById("region").value;
+    const accessKeyId = document.getElementById("access-key-id").value;
+    const secretAccessKey = document.getElementById("secret-access-key").value;
 
-    setCookie('bucketName', newBucketName, 30);
-    setCookie('region', newRegion, 30);
-    setCookie('accessKeyId', newAccessKeyId, 30);
-    setCookie('secretAccessKey', newSecretAccessKey, 30);
+    await saveBucketConfig(alias, bucketName, region, accessKeyId, secretAccessKey);
 
-    updateConfig(newBucketName, newRegion, newAccessKeyId, newSecretAccessKey, imageSize);
-    listObjects();
+    // Save the bucket alias in a cookie
+    setCookie("bucket-alias", alias, 30);
+
+    updateConfig(alias, bucketName, region, accessKeyId, secretAccessKey);
     document.getElementById("settings-modal").classList.add("hidden");
 });
+
+document.getElementById("existing-buckets").addEventListener("change", (event) => {
+    const selectedConfig = JSON.parse(event.target.value);
+
+    document.getElementById("bucket-alias").value = selectedConfig.alias;
+    document.getElementById("bucket-name").value = selectedConfig.bucketName;
+    document.getElementById("region").value = selectedConfig.region;
+    document.getElementById("access-key-id").value = selectedConfig.accessKeyId;
+    document.getElementById("secret-access-key").value = selectedConfig.secretAccessKey;
+});
+
+
 
 // Add the ability to zoom
 document.addEventListener("DOMContentLoaded", function () {
@@ -827,3 +947,25 @@ document.addEventListener("DOMContentLoaded", function () {
         imagePanel.style.cursor = "default";
     });
 });
+
+document.addEventListener("DOMContentLoaded", async function () {
+    // Load the last used bucket alias from the cookie
+    const lastUsedBucketAlias = getCookie("bucket-alias");
+    let lastUsedBucketConfig = null;
+
+    if (lastUsedBucketAlias) {
+        lastUsedBucketConfig = await loadBucketConfigByAlias(lastUsedBucketAlias);
+    }
+
+    if (lastUsedBucketConfig) {
+        await updateConfig(
+            lastUsedBucketAlias,
+            lastUsedBucketConfig.bucketName,
+            lastUsedBucketConfig.region,
+            lastUsedBucketConfig.accessKeyId,
+            lastUsedBucketConfig.secretAccessKey
+        );
+    }
+});
+
+
