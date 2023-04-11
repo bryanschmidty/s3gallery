@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Photo Gallery</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <header class="header">
+    <div class="breadcrumbs" id="breadcrumbs"></div>
+    <h1>AWS S3 Viewer</h1>
+    <div class="settings-container">
+      <a href="#" id="options-link">Options</a>
+    </div>
+  </header>
+
+  <div class="gallery" id="gallery"></div>
+
+  <div id="image-modal" class="image-modal hidden">
+    <div class="modal-content">
+      <div class="info-panel">
+        <h3>Image Information</h3>
+        <ul>
+          <li>Size: <span id="image-size"></span></li>
+          <li>Dimensions: <span id="image-dimensions"></span></li>
+          <li>Tags: <span id="image-tags"></span></li>
+        </ul>
+        <div id="versions-container" class="hidden">
+          <h3>Versions</h3>
+          <div id="versions-list"></div>
+        </div>
+        <button id="toggle-info" class="toggle-info">Info</button>
+      </div>
+      <div class="main-panel">
+        <div class="image-panel">
+          <img id="modal-image" src="" alt="">
+        </div>
+      </div>
+      <button class="close-modal" id="close-modal">x</button>
+    </div>
+  </div>
+
+  <div id="settings-modal" class="settings-modal hidden">
+    <div class="modal-content">
+      <span id="close-x" class="close-x close-settings">&times;</span>
+      <h3>Options</h3>
+      <form id="settings-form">
+        <div class="form-group">
+          <label for="bucket-name">Bucket Name:</label>
+          <input type="text" id="bucket-name" class="form-control" />
+        </div>
+        <div class="form-group">
+          <label for="region">Region:</label>
+          <input type="text" id="region" class="form-control" />
+        </div>
+        <div class="form-group">
+          <label for="access-key-id">Access Key ID:</label>
+          <input type="text" id="access-key-id" class="form-control" />
+        </div>
+        <div class="form-group">
+          <label for="secret-access-key">Secret Access Key:</label>
+          <input type="password" id="secret-access-key" class="form-control" />
+        </div>
+
+        <div class="form-actions">
+          <button id="save-settings" class="form-action-btn">Save Settings</button>
+          <button id="close-settings" class="form-action-btn close-modal close-settings">Cancel</button>
+        </div>
+      </form>
+      <p>
+        <em>
+          These credentials will only be saved in your cookies, and will not be transmitted or stored anywhere else on the internet.
+        </em>
+      </p>
+    </div>
+  </div>
+
+  <footer>
+    <div>
+      <label for="gallery-image-size">Grid Size</label>
+      <input type="range" id="gallery-image-size" name="gallery-image-size" min="128" max="512" value="256">
+    </div>
+    <div id="footer-info"></div>
+  </footer>
+
+  <script src="https://sdk.amazonaws.com/js/aws-sdk-2.813.0.min.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

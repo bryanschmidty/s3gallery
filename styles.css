@@ -1,0 +1,368 @@
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+}
+
+/* header */
+.header {
+    background-color: rgba(0, 0, 0, 0.7);
+    color: white;
+    padding: 10px 0;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+}
+
+.header h1 {
+    font-size: 32px;
+    font-family: 'Arial', sans-serif;
+    text-align: center;
+    flex-grow: 1;
+}
+
+.breadcrumbs {
+    color: white;
+    margin-left: 20px;
+    align-self: flex-end;
+}
+.breadcrumbs a {
+    text-decoration: none;
+    color: white;
+}
+
+.breadcrumbs a:hover {
+    text-decoration: underline;
+}
+
+/* settings menu */
+.settings-container {
+    margin-right: 20px;
+    z-index: 1000;
+    align-self: flex-end;
+    color: white;
+}
+
+.settings-container a {
+    color: white;
+    text-decoration: none;
+}
+
+.settings-container a:hover {
+    text-decoration: underline;
+}
+
+.settings-toggle {
+    background-color: #fff;
+    border: 1px solid #ccc;
+    color: #333;
+    padding: 5px 10px;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+.settings-toggle:hover {
+    background-color: #eee;
+}
+
+.settings-menu {
+    background-color: #fff;
+    border: 1px solid #ccc;
+    padding: 10px;
+    border-radius: 5px;
+    position: absolute;
+    right: 0;
+    top: 40px;
+    width: 250px;
+    opacity: 0;
+    transition: all 0.3s ease;
+    visibility: hidden;
+}
+
+.settings-container:hover .settings-menu {
+    visibility: visible;
+    opacity: 1;
+    top: 60px;
+}
+
+.settings-menu label {
+    display: block;
+    margin-bottom: 5px;
+}
+
+/* gallery */
+.gallery {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    padding: 10px 10px 40px 10px;
+}
+
+.folder {
+    text-align: center;
+    cursor: pointer;
+}
+
+.gallery .image-container {
+     position: relative;
+     overflow: hidden;
+     width: 100%;
+     padding-top: 100%; /* 1:1 aspect ratio */
+ }
+
+.gallery img {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: contain; /* Maintain aspect ratio */
+    object-position: center; /* Center the image */
+}
+
+.image {
+    cursor: pointer;
+}
+
+.image-info {
+    text-align: center;
+    font-size: 14px;
+}
+
+.image-name {
+    font-weight: bold;
+}
+
+.image-version-count {
+    font-style: italic;
+}
+
+/* loading screen */
+.loading-screen {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background-color: rgba(0, 0, 0, 0.7);
+    z-index: 1000;
+}
+
+.loading-message {
+    color: white;
+    font-size: 24px;
+    margin-bottom: 20px;
+}
+
+.loading-bar {
+    background-color: white;
+    height: 4px;
+    width: 0%;
+    transition: width 0.3s;
+}
+
+/* footer */
+footer {
+    position: fixed;
+    left: 0;
+    bottom: 0;
+    width: 100%;
+    background-color: rgba(0, 0, 0, 0.7);
+    color: white;
+    padding: 10px;
+    box-sizing: border-box;
+    z-index: 100;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+footer label {
+    margin-right: 10px;
+}
+
+#footer-info {
+    text-align: right;
+}
+
+
+/* modal */
+.image-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.8);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+.hidden {
+    display: none !important;
+}
+
+.image-modal .modal-content {
+    display: grid;
+    grid-template-columns: 300px 1fr;
+    grid-template-areas: "info main";
+    align-items: center;
+    width: 100%;
+    height: 100%;
+    max-width: 1200px;
+    padding: 20px;
+}
+
+.main-panel {
+    grid-area: main;
+    display: grid;
+    grid-template-rows: 1fr 100px;
+    grid-template-areas: "image" "carousel";
+    height: 100%;
+}
+
+.info-panel {
+    grid-area: info;
+    background-color: white;
+    padding: 20px;
+    width: 260px;
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+}
+
+.image-panel {
+    grid-area: image;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    height: 100%;
+    position: relative;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+}
+
+
+.image-panel img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+}
+
+.toggle-info {
+    position: absolute;
+    top: 10px;
+    right: -40px;
+    background-color: white;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    padding: 5px 10px;
+    cursor: pointer;
+}
+
+.image-modal .close-modal {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    font-size: 24px;
+    color: white;
+    cursor: pointer;
+    z-index: 1001;
+}
+
+.zoomable {
+    transform-origin: 0 0;
+    transition: transform 0.25s;
+}
+
+/* settings modal */
+.settings-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.8);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.settings-modal .modal-content {
+    position: relative;
+    background-color: white;
+    padding: 20px;
+    border-radius: 5px;
+    width: 100%;
+    max-width: 400px;
+}
+
+.close-x {
+    position: absolute;
+    top: 10px;
+    right: 15px;
+    font-size: 18px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 5px;
+}
+
+.form-control {
+    display: block;
+    width: 100%;
+    padding: 8px;
+    font-size: 14px;
+    line-height: 1.5;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    background-color: #fff;
+    background-clip: padding-box;
+}
+
+.form-actions {
+    display: flex;
+    justify-content: space-between;
+}
+
+.form-action-btn {
+    background-color: #007bff;
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    padding: 10px 20px;
+    font-size: 14px;
+    cursor: pointer;
+}
+
+.form-action-btn:hover {
+    background-color: #0056b3;
+}
+
+.close-modal {
+    background-color: #ccc;
+}
+
+.close-modal:hover {
+    background-color: #999;
+}
