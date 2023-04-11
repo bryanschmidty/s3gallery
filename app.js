@@ -55,6 +55,25 @@ async function fetchAllObjects(prefix, accumulatedObjects = [], accumulatedPrefi
     });
 }
 
+// Error modal
+function showErrorModal(title, message) {
+    const errorModal = document.createElement('div');
+    errorModal.className = 'error-modal';
+    errorModal.innerHTML = `
+        <div class="error-modal-backdrop"></div>
+        <div class="error-modal-content">
+            <h2>${title}</h2>
+            <p>${message}</p>
+            <button class="error-modal-close">Close</button>
+        </div>
+    `;
+    document.body.appendChild(errorModal);
+
+    errorModal.querySelector('.error-modal-close').addEventListener('click', () => {
+        errorModal.remove();
+    });
+}
+
 // Fetch all objects in the bucket with the given prefix
 async function listObjects(prefix = '') {
     try {
@@ -64,7 +83,28 @@ async function listObjects(prefix = '') {
         await renderGallery(data);
         updateImageSize(savedImageSize);
     } catch (error) {
-        console.error('Error listing objects:', error);
+        if (error.message.includes("Network Failure")) {
+            showErrorModal("Network Failure", "There was a network failure while trying to access the resources. " +
+                "Please check your internet connection and try again. If the issue persists, ensure that your S3 bucket is properly configured and accessible. " +
+                "You can also check the browser console for more details.<br /><br />" +
+                "Recommended CORS config: <div class='error-modal-code'><pre>[\n" +
+                "    {\n" +
+                "        \"AllowedHeaders\": [\n" +
+                "            \"*\"\n" +
+                "        ],\n" +
+                "        \"AllowedMethods\": [\n" +
+                "            \"GET\",\n" +
+                "            \"HEAD\"\n" +
+                "        ],\n" +
+                "        \"AllowedOrigins\": [\n" +
+                "            \"*\"\n" +
+                "        ],\n" +
+                "        \"ExposeHeaders\": []\n" +
+                "    }\n" +
+                "]</pre></div>");
+        } else {
+            console.error('Error listing objects:', error);
+        }
     } finally {
         const loadingScreen = document.querySelector('.loading-screen');
         if (loadingScreen) {
@@ -280,7 +320,7 @@ async function renderImage(object) {
         // Cache the image to localStorage if it's an image
         if (isImage) {
             localStorageImageData = await saveImageToIndexedDB(object.Key, latestVersion, imageUrl);
-            versionCount = localStorageImageData.versions.length;
+            versionCount = versioningEnabled ? localStorageImageData.versions.length : 1;
         }
     }
 
@@ -601,6 +641,10 @@ async function updateConfig(bucketName, region, accessKeyId, secretAccessKey, im
 }
 
 function updateImageSize(imageSize) {
+    const image = document.querySelectorAll('.image');
+    image.forEach((container) => {
+        container.style.maxWidth = `${imageSize}px`;
+    })
     const imageContainers = document.querySelectorAll('.image-container');
     imageContainers.forEach((container) => {
         container.style.width = `${imageSize}px`;
@@ -679,7 +723,8 @@ document.getElementById("options-link").addEventListener("click", (event) => {
     document.addEventListener("keydown", escapeModal);
 });
 
-document.getElementById("save-settings").addEventListener("click", () => {
+document.getElementById("save-settings").addEventListener("click", (event) => {
+    event.preventDefault();
     const newBucketName = document.getElementById('bucket-name').value;
     const newRegion = document.getElementById('region').value;
     const newAccessKeyId = document.getElementById('access-key-id').value;
@@ -692,6 +737,7 @@ document.getElementById("save-settings").addEventListener("click", () => {
     setCookie('secretAccessKey', newSecretAccessKey, 30);
 
     updateConfig(newBucketName, newRegion, newAccessKeyId, newSecretAccessKey, imageSize);
+    listObjects();
     document.getElementById("settings-modal").classList.add("hidden");
 });
 
