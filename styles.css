@@ -18,10 +18,26 @@ body {
 }
 
 .header h1 {
-    font-size: 32px;
+    font-size: 36px;
     font-family: 'Arial', sans-serif;
-    text-align: center;
+    margin-left: 20px;
     flex-grow: 1;
+}
+
+.header-links {
+    display: flex;
+    align-items: center;
+    margin-right: 20px;
+}
+
+.header-links a {
+    color: white;
+    text-decoration: none;
+    margin-left: 10px;
+}
+
+.header-links a:hover {
+    text-decoration: underline;
 }
 
 .breadcrumbs {
