@@ -1,10 +1,3 @@
-// Initialize AWS S3 client and set default bucketName
-let s3 = new AWS.S3();
-let versioningEnabled;
-let savedImageSize;
-
-const breadcrumbsEl = document.getElementById('breadcrumbs');
-const galleryEl = document.getElementById('gallery');
 
 async function fetchAllObjects(prefix, accumulatedObjects = [], accumulatedPrefixes = [], marker = null) {
     return new Promise(async (resolve, reject) => {
@@ -81,7 +74,7 @@ async function listObjects(prefix = '') {
         const data = await fetchAllObjects(prefix);
         renderBreadcrumbs(prefix);
         await renderGallery(data);
-        updateImageSize(savedImageSize);
+        updateImageSize();
     } catch (error) {
         if (error.message.includes("Network Failure")) {
             showErrorModal("Network Failure", "There was a network failure while trying to access the resources. " +
@@ -126,6 +119,7 @@ function renderBreadcrumbs(prefix, imageName = '') {
     }).join(' / ');
 
     const imageNameFragment = imageName ? ` / ${imageName}` : '';
+    const breadcrumbsEl = document.getElementById('breadcrumbs');
     breadcrumbsEl.innerHTML = `<a href="#" data-path="">${window.bucketName}</a> / ` + breadcrumbs + imageNameFragment;
     breadcrumbsEl.querySelectorAll('a').forEach(link => {
         link.addEventListener('click', (event) => {
@@ -164,6 +158,7 @@ async function renderGallery(data) {
     updateFooter(folderCount, fileCount, humanReadableFileSize);
 
     return new Promise((resolve) => {
+        const galleryEl = document.getElementById('gallery');
         galleryEl.innerHTML = folders + images.join('');
 
         galleryEl.querySelectorAll('.folder').forEach(folder =>
@@ -770,7 +765,11 @@ async function updateConfig(alias, bucketName, region, accessKeyId, secretAccess
     });
 }
 
-function updateImageSize(imageSize) {
+function updateImageSize(imageSize = undefined) {
+    if (imageSize === undefined) {
+        imageSize = document.getElementById("gallery-image-size").value;
+    }
+
     const image = document.querySelectorAll('.image,.folder');
     image.forEach((container) => {
         container.style.maxWidth = `${imageSize}px`;
@@ -797,7 +796,6 @@ function showLoadingScreen() {
 document.getElementById('gallery-image-size').addEventListener('input', (event) => {
     const imageSize = event.target.value;
     setCookie('imageSize', imageSize, 30);
-    console.log(imageSize);
     updateImageSize(imageSize);
 });
 
@@ -862,18 +860,15 @@ document.getElementById("existing-buckets").addEventListener("change", (event) =
 
 
 // Add the ability to zoom
-document.addEventListener("DOMContentLoaded", function () {
-    const imagePanel = document.querySelector(".image-panel");
-    const modalImage = document.getElementById("modal-image");
+function addDragAndZoomEventHandlers()
+{
     let imageScale = 1;
     let isDragging = false;
     let lastMouseX, lastMouseY;
+    let translateX = 0;
+    let translateY = 0;
 
-    // Add the zoomable class to the modal image
-    modalImage.classList.add("zoomable");
-
-    // Listen for the wheel event on the image panel
-    imagePanel.addEventListener("wheel", function (event) {
+    function imageZoom(event) {
         event.preventDefault(); // Prevent the default scroll behavior
         if (isDragging) return;
 
@@ -889,6 +884,8 @@ document.addEventListener("DOMContentLoaded", function () {
         if (imageScale <= 1) {
             // Reset the image transform properties when zooming out
             imageScale = 1;
+            translateX = 0;
+            translateY = 0;
             modalImage.style.transform = "scale(1)";
             modalImage.style.transformOrigin = "0 0";
         } else {
@@ -905,22 +902,20 @@ document.addEventListener("DOMContentLoaded", function () {
             modalImage.style.transformOrigin = `${imageX}px ${imageY}px`;
 
             // Apply the new scale to the image
-            modalImage.style.transform = `scale(${imageScale})`;
+            modalImage.style.transform = `translate(${translateX}px, ${translateY}px) scale(${imageScale})`;
         }
-    });
+    }
 
-    // Listen for the mousedown event on the image panel
-    imagePanel.addEventListener("mousedown", function (event) {
+    function imageGrab(event) {
         if (imageScale <= 1) return;
 
         isDragging = true;
         lastMouseX = event.clientX;
         lastMouseY = event.clientY;
         imagePanel.style.cursor = "grabbing";
-    });
+    }
 
-    // Listen for the mousemove event on the image panel
-    imagePanel.addEventListener("mousemove", function (event) {
+    function imageDrag(event) {
         if (!isDragging) return;
 
         // Calculate the mouse movement delta
@@ -928,25 +923,29 @@ document.addEventListener("DOMContentLoaded", function () {
         const deltaY = event.clientY - lastMouseY;
 
         // Update the image position based on the mouse movement
-        modalImage.style.transform = `translate(${deltaX}px, ${deltaY}px) scale(${imageScale})`;
+        translateX += deltaX;
+        translateY += deltaY;
+        modalImage.style.transform = `translate(${translateX}px, ${translateY}px) scale(${imageScale})`;
 
         // Update the last mouse position
         lastMouseX = event.clientX;
         lastMouseY = event.clientY;
-    });
+    }
 
-    // Listen for the mouseup event on the image panel
-    imagePanel.addEventListener("mouseup", function () {
+    function imageEndDragging() {
         isDragging = false;
         imagePanel.style.cursor = "default";
-    });
+    }
 
-    // Listen for the mouseleave event on the image panel
-    imagePanel.addEventListener("mouseleave", function () {
-        isDragging = false;
-        imagePanel.style.cursor = "default";
-    });
-});
+    const imagePanel = document.querySelector(".image-panel");
+    const modalImage = document.getElementById("modal-image");
+    modalImage.classList.add("zoomable");
+    modalImage.addEventListener("wheel", imageZoom, {passive: false});
+    modalImage.addEventListener("mousedown", imageGrab);
+    modalImage.addEventListener("mousemove", imageDrag);
+    modalImage.addEventListener("mouseup", imageEndDragging);
+    modalImage.addEventListener("mouseleave", imageEndDragging);
+}
 
 document.addEventListener("DOMContentLoaded", async function () {
     // Load the last used bucket alias from the cookie
@@ -966,6 +965,8 @@ document.addEventListener("DOMContentLoaded", async function () {
             lastUsedBucketConfig.secretAccessKey
         );
     }
+
+    addDragAndZoomEventHandlers();
 });
 
 
