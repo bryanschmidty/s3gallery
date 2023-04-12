@@ -869,17 +869,29 @@ function addDragAndZoomEventHandlers()
     let translateY = 0;
 
     function imageZoom(event) {
-        event.preventDefault(); // Prevent the default scroll behavior
+        event.preventDefault();
         if (isDragging) return;
 
         // Determine the zoom direction (in or out)
         const zoomDirection = event.deltaY < 0 ? 1 : -1;
 
+        // Store the previous scale
+        const prevScale = imageScale;
+
         // Calculate the new scale
-        imageScale += zoomDirection * 0.1;
+        imageScale += zoomDirection * 0.3;
 
         // Set a minimum and maximum scale
         imageScale = Math.min(Math.max(imageScale, 0.1), 5);
+
+        // Calculate the mouse position relative to the image panel
+        const rect = imagePanel.getBoundingClientRect();
+        const offsetX = event.clientX - rect.left;
+        const offsetY = event.clientY - rect.top;
+
+        // Update the translation based on the new scale and mouse position
+        translateX = offsetX - (offsetX - translateX) * (imageScale / prevScale);
+        translateY = offsetY - (offsetY - translateY) * (imageScale / prevScale);
 
         if (imageScale <= 1) {
             // Reset the image transform properties when zooming out
@@ -887,26 +899,15 @@ function addDragAndZoomEventHandlers()
             translateX = 0;
             translateY = 0;
             modalImage.style.transform = "scale(1)";
-            modalImage.style.transformOrigin = "0 0";
         } else {
-            // Calculate the mouse position relative to the image panel
-            const rect = imagePanel.getBoundingClientRect();
-            const offsetX = event.clientX - rect.left;
-            const offsetY = event.clientY - rect.top;
-
-            // Calculate the relative position of the mouse on the image
-            const imageX = offsetX / imageScale;
-            const imageY = offsetY / imageScale;
-
-            // Update the transform origin to the mouse position
-            modalImage.style.transformOrigin = `${imageX}px ${imageY}px`;
-
-            // Apply the new scale to the image
+            // Apply the new scale and translation to the image
             modalImage.style.transform = `translate(${translateX}px, ${translateY}px) scale(${imageScale})`;
         }
     }
 
+
     function imageGrab(event) {
+        event.preventDefault();
         if (imageScale <= 1) return;
 
         isDragging = true;
@@ -916,6 +917,7 @@ function addDragAndZoomEventHandlers()
     }
 
     function imageDrag(event) {
+        event.preventDefault();
         if (!isDragging) return;
 
         // Calculate the mouse movement delta
@@ -932,7 +934,8 @@ function addDragAndZoomEventHandlers()
         lastMouseY = event.clientY;
     }
 
-    function imageEndDragging() {
+    function imageEndDragging(event) {
+        event.preventDefault();
         isDragging = false;
         imagePanel.style.cursor = "default";
     }
