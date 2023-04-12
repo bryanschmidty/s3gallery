@@ -218,6 +218,17 @@ async function onImageClick(event) {
 document.getElementById('close-modal').addEventListener('click', closeImageModal);
 
 
+const infoPanel = document.querySelector('.info-panel');
+const mainPanel = document.querySelector('.main-panel');
+const imagePanel = document.querySelector('.image-panel');
+const toggleInfo = document.getElementById('toggle-info');
+
+toggleInfo.addEventListener('click', function () {
+    infoPanel.classList.toggle('hidden');
+    imagePanel.classList.toggle('full-width');
+    toggleInfo.classList.toggle('closed');
+});
+
 // Function to format bytes into a human-readable format
 function formatBytes(bytes, decimals = 2) {
     if (bytes === 0) return '0 Bytes';
@@ -787,6 +798,19 @@ async function updateConfig(alias, bucketName, region, accessKeyId, secretAccess
     });
 }
 
+// loading screen
+function showLoadingScreen() {
+    const loadingScreen = document.createElement('div');
+    loadingScreen.classList.add('loading-screen');
+    loadingScreen.innerHTML = `
+    <span class="loading-message">Loading objects...</span>
+    <div class="loading-bar"></div>
+  `;
+    document.body.appendChild(loadingScreen);
+    return loadingScreen;
+}
+
+// change grid size
 function updateImageSize(imageSize = undefined) {
     if (imageSize === undefined) {
         imageSize = document.getElementById("gallery-image-size").value;
@@ -803,23 +827,32 @@ function updateImageSize(imageSize = undefined) {
     });
 }
 
-// loading screen
-function showLoadingScreen() {
-    const loadingScreen = document.createElement('div');
-    loadingScreen.classList.add('loading-screen');
-    loadingScreen.innerHTML = `
-    <span class="loading-message">Loading objects...</span>
-    <div class="loading-bar"></div>
-  `;
-    document.body.appendChild(loadingScreen);
-    return loadingScreen;
-}
-
 document.getElementById('gallery-image-size').addEventListener('input', (event) => {
     const imageSize = event.target.value;
     setCookie('imageSize', imageSize, 30);
     updateImageSize(imageSize);
 });
+
+document.addEventListener('wheel', (event) => {
+    if (event.ctrlKey || event.metaKey) {
+        event.preventDefault();
+        const galleryImageSizeInput = document.getElementById('gallery-image-size');
+        const currentValue = parseInt(galleryImageSizeInput.value);
+        let newValue;
+
+        if (event.deltaY < 0) {
+            // Scroll up: increase value
+            newValue = Math.min(currentValue + 16, parseInt(galleryImageSizeInput.max));
+        } else {
+            // Scroll down: decrease value
+            newValue = Math.max(currentValue - 16, parseInt(galleryImageSizeInput.min));
+        }
+
+        galleryImageSizeInput.value = newValue;
+        setCookie('imageSize', newValue, 30);
+        updateImageSize(newValue);
+    }
+}, {passive: false});
 
 // settings modal
 document.getElementById("options-link").addEventListener("click", (event) => {

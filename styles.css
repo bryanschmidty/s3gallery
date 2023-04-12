@@ -29,6 +29,7 @@ body {
     margin-left: 20px;
     align-self: flex-end;
 }
+
 .breadcrumbs a {
     text-decoration: none;
     color: white;
@@ -107,11 +108,11 @@ body {
 }
 
 .gallery .image-container {
-     position: relative;
-     overflow: hidden;
-     width: 100%;
-     padding-top: 100%; /* 1:1 aspect ratio */
- }
+    position: relative;
+    overflow: hidden;
+    width: 100%;
+    padding-top: 100%; /* 1:1 aspect ratio */
+}
 
 .gallery img {
     position: absolute;
@@ -207,6 +208,7 @@ footer label {
     z-index: 1000;
     font-family: 'Arial', sans-serif;
 }
+
 .hidden {
     display: none !important;
 }
@@ -253,8 +255,9 @@ footer label {
     position: relative;
     left: 0;
     right: 0;
-    top: 0;
+    top: 40px;
     bottom: 0;
+    z-index: 1500;
 }
 
 .image-panel img {
@@ -266,7 +269,7 @@ footer label {
 .toggle-info {
     position: absolute;
     top: 10px;
-    right: -40px;
+    /*left: -40px;*/
     background-color: white;
     border: 1px solid #eee;
     border-radius: 5px;
@@ -275,6 +278,7 @@ footer label {
     font-size: 14px;
     color: #333;
     font-weight: 500;
+    z-index: 1001;
 }
 
 .image-modal .close-modal {
@@ -294,6 +298,34 @@ footer label {
 
 .image-modal .close-modal:hover {
     background: none;
+}
+
+.toggle-info::before {
+    content: '<<';
+    font-weight: bold;
+}
+
+.toggle-info.closed::before {
+    content: '>>';
+}
+
+.toggle-info.closed {
+    left: 10px;
+    background-color: rgba(0, 0, 0, 0.8);
+    color: white;
+}
+
+.main-panel.full-width {
+    grid-template-columns: 0 1fr;
+}
+
+.image-panel.full-width {
+    width: calc(100% + 260px); /* Add the width of the info-panel */
+    left: -260px;
+}
+
+.info-panel.hidden {
+    display: none;
 }
 
 .zoomable {
