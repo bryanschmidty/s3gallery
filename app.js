@@ -178,17 +178,20 @@ function onFolderClick(event) {
     listObjects(event.target.closest('.folder').dataset.path);
 }
 
-// show larger image
+// show image modal
 function closeImageModal() {
     const imageModal = document.getElementById('image-modal');
     imageModal.classList.add('hidden');
     document.removeEventListener('keydown', escapeKeyPressed);
+
+    // Reset the zoom when closing the image modal
+    resetZoom();
 }
 
 function escapeKeyPressed(event) {
     console.log('escape');
-    event.preventDefault()
     if (event.key === 'Escape') {
+        event.preventDefault()
         closeImageModal();
     }
 }
@@ -877,13 +880,19 @@ document.getElementById("existing-buckets").addEventListener("change", (event) =
 
 
 // Add the ability to zoom
+let imageScale = 1;
+let isDragging = false;
+let lastMouseX, lastMouseY;
+let translateX = 0;
+let translateY = 0;
+function resetZoom() {
+    const modalImage = document.getElementById("modal-image");
+    modalImage.style.transform = "scale(1)";
+    imageScale = 1;
+    translateX = 0;
+    translateY = 0;
+}
 function addDragAndZoomEventHandlers() {
-    let imageScale = 1;
-    let isDragging = false;
-    let lastMouseX, lastMouseY;
-    let translateX = 0;
-    let translateY = 0;
-
     function imageZoom(event) {
         event.preventDefault();
         if (isDragging) return;
@@ -920,7 +929,6 @@ function addDragAndZoomEventHandlers() {
             modalImage.style.transform = `translate(${translateX}px, ${translateY}px) scale(${imageScale})`;
         }
     }
-
 
     function imageGrab(event) {
         event.preventDefault();
