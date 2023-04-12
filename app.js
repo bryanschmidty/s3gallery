@@ -178,6 +178,21 @@ function onFolderClick(event) {
     listObjects(event.target.closest('.folder').dataset.path);
 }
 
+// show larger image
+function closeImageModal() {
+    const imageModal = document.getElementById('image-modal');
+    imageModal.classList.add('hidden');
+    document.removeEventListener('keydown', escapeKeyPressed);
+}
+
+function escapeKeyPressed(event) {
+    console.log('escape');
+    event.preventDefault()
+    if (event.key === 'Escape') {
+        closeImageModal();
+    }
+}
+
 async function onImageClick(event) {
     const imageKey = event.target.dataset.key;
 
@@ -193,7 +208,12 @@ async function onImageClick(event) {
     // Show the modal
     const imageModal = document.getElementById('image-modal');
     imageModal.classList.remove('hidden');
+
+    // Add an event listener to close the modal when the Escape key is pressed
+    document.addEventListener('keydown', escapeKeyPressed);
 }
+document.getElementById('close-modal').addEventListener('click', closeImageModal);
+
 
 // Function to format bytes into a human-readable format
 function formatBytes(bytes, decimals = 2) {
@@ -212,11 +232,6 @@ function updateFooter(folderCount, fileCount, totalFileSize) {
         <span class="footer-count">${fileCount}</span> Files |
         <span class="footer-size">${totalFileSize}</span>
     `;
-}
-
-function closeImageModal() {
-    const imageModal = document.getElementById('image-modal');
-    imageModal.classList.add('hidden');
 }
 
 function getSignedUrl(key, versionId = null) {
@@ -411,9 +426,13 @@ function getImageDimensions(url) {
 }
 
 async function displayImageInfo(imageInfo) {
-    document.getElementById('image-size').textContent = imageInfo.size;
+    document.getElementById('image-size').textContent = formatBytes(imageInfo.size);
     document.getElementById('image-dimensions').textContent = imageInfo.dimensions;
     document.getElementById('image-tags').textContent = imageInfo.metadata.tags || '-';
+
+    if (!versioningEnabled) {
+        return;
+    }
 
     const versionsContainer = document.getElementById('versions-container');
     if (imageInfo.versions.length <= 1) {
@@ -799,8 +818,6 @@ document.getElementById('gallery-image-size').addEventListener('input', (event) 
     updateImageSize(imageSize);
 });
 
-document.getElementById('close-modal').addEventListener('click', closeImageModal);
-
 // settings modal
 document.getElementById("options-link").addEventListener("click", (event) => {
     event.preventDefault();
@@ -860,8 +877,7 @@ document.getElementById("existing-buckets").addEventListener("change", (event) =
 
 
 // Add the ability to zoom
-function addDragAndZoomEventHandlers()
-{
+function addDragAndZoomEventHandlers() {
     let imageScale = 1;
     let isDragging = false;
     let lastMouseX, lastMouseY;
