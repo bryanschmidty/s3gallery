@@ -197,23 +197,30 @@ function escapeKeyPressed(event) {
 }
 
 async function onImageClick(event) {
-    const imageKey = event.target.dataset.key;
+    const img = event.target;
+    img.classList.add('highlighted');
 
-    // Show the modal and load the image
-    const imageUrl = getSignedUrl(imageKey);
-    const modalImage = document.getElementById('modal-image');
-    modalImage.src = imageUrl;
+    // setTimeout(() => {
+    //     img.classList.remove('highlighted');
+    // }, 1000);
 
-    // Fetch and display image information
-    const imageInfo = await getImageInfo(imageKey);
-    displayImageInfo(imageInfo);
-
-    // Show the modal
-    const imageModal = document.getElementById('image-modal');
-    imageModal.classList.remove('hidden');
-
-    // Add an event listener to close the modal when the Escape key is pressed
-    document.addEventListener('keydown', escapeKeyPressed);
+    // const imageKey = event.target.dataset.key;
+    //
+    // // Show the modal and load the image
+    // const imageUrl = getSignedUrl(imageKey);
+    // const modalImage = document.getElementById('modal-image');
+    // modalImage.src = imageUrl;
+    //
+    // // Fetch and display image information
+    // const imageInfo = await getImageInfo(imageKey);
+    // displayImageInfo(imageInfo);
+    //
+    // // Show the modal
+    // const imageModal = document.getElementById('image-modal');
+    // imageModal.classList.remove('hidden');
+    //
+    // // Add an event listener to close the modal when the Escape key is pressed
+    // document.addEventListener('keydown', escapeKeyPressed);
 }
 document.getElementById('close-modal').addEventListener('click', closeImageModal);
 
